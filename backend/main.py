@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from routers import image_router
 
 app = FastAPI(title="FastAPI Backend", version="1.0.0")
 
@@ -11,6 +12,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include routers
+app.include_router(image_router.router)
 
 
 @app.get("/")
