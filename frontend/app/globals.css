@@ -26,3 +26,38 @@ body {
     rgb(var(--background-start-rgb));
 }
 
+/* Custom range input styling for split view slider */
+.split-view-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: ew-resize;
+  height: 100%;
+  width: 100%;
+}
+
+.split-view-slider::-webkit-slider-track {
+  background: transparent;
+}
+
+.split-view-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  height: 100%;
+  width: 4px;
+  cursor: ew-resize;
+}
+
+.split-view-slider::-moz-range-track {
+  background: transparent;
+}
+
+.split-view-slider::-moz-range-thumb {
+  background: transparent;
+  border: none;
+  height: 100%;
+  width: 4px;
+  cursor: ew-resize;
+}
+

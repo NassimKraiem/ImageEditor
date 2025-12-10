@@ -210,27 +210,37 @@ export default function ImageEditor() {
             {/* Main Editor Area */}
             <div className="lg:col-span-3">
               <div className="bg-gray-800 rounded-lg p-6">
-                <div className="flex justify-center items-center bg-gray-900 rounded-lg p-4 min-h-[500px] overflow-auto">
-                  {activeTool === 'crop' && editedImage ? (
-                    <ImageCrop
-                      imageSrc={editedImage}
-                      onCropComplete={handleCropComplete}
-                    />
-                  ) : (
-                    <canvas
-                      ref={canvasRef}
-                      className="max-w-full h-auto rounded-lg shadow-2xl"
-                    />
-                  )}
-                </div>
-
-                {activeTool === 'filters' && editedImage && (
-                  <div className="mt-4">
-                    <ImageFilters
-                      imageSrc={editedImage}
-                      onFilterApply={handleFilterApply}
-                    />
-                  </div>
+                {activeTool === 'filters' && editedImage ? (
+                  <ImageFilters
+                    imageSrc={editedImage}
+                    onFilterApply={handleFilterApply}
+                    onUndo={(previousImageUrl) => {
+                      // Undo the last applied filter by going back to the previous image
+                      setEditedImage(previousImageUrl)
+                      const img = new Image()
+                      img.onload = () => {
+                        setOriginalImage(img)
+                        drawImageToCanvas(img)
+                      }
+                      img.src = previousImageUrl
+                    }}
+                  />
+                ) : (
+                  <>
+                    <div className="flex justify-center items-center bg-gray-900 rounded-lg p-4 min-h-[500px] overflow-auto">
+                      {activeTool === 'crop' && editedImage ? (
+                        <ImageCrop
+                          imageSrc={editedImage}
+                          onCropComplete={handleCropComplete}
+                        />
+                      ) : (
+                        <canvas
+                          ref={canvasRef}
+                          className="max-w-full h-auto rounded-lg shadow-2xl"
+                        />
+                      )}
+                    </div>
+                  </>
                 )}
 
                 {activeTool === 'adjust' && (

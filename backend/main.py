@@ -1,6 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from routers import image_router
+from routers.websocket_router import websocket_endpoint
 
 app = FastAPI(title="FastAPI Backend", version="1.0.0")
 
@@ -15,6 +16,11 @@ app.add_middleware(
 
 # Include routers
 app.include_router(image_router.router)
+
+# WebSocket endpoint
+@app.websocket("/ws/image-processor")
+async def websocket_route(websocket: WebSocket):
+    await websocket_endpoint(websocket)
 
 
 @app.get("/")
