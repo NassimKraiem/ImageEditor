@@ -8,9 +8,10 @@ import { cropImage } from '@/lib/api'
 interface ImageCropProps {
   imageSrc: string
   onCropComplete: (croppedImageUrl: string) => void
+  onRevert?: () => void
 }
 
-export default function ImageCrop({ imageSrc, onCropComplete }: ImageCropProps) {
+export default function ImageCrop({ imageSrc, onCropComplete, onRevert }: ImageCropProps) {
   const [crop, setCrop] = useState<Crop>()
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>()
   const [isProcessing, setIsProcessing] = useState(false)
@@ -61,6 +62,31 @@ export default function ImageCrop({ imageSrc, onCropComplete }: ImageCropProps) 
     }
   }, [completedCrop, imageSrc, onCropComplete])
 
+  const handleRevert = useCallback(() => {
+    if (imgRef.current) {
+      const { width, height } = imgRef.current
+      // Reset crop to full image
+      const fullCrop = {
+        unit: '%' as const,
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 100,
+      }
+      setCrop(fullCrop)
+      // Reset completedCrop to full image dimensions in pixels
+      setCompletedCrop({
+        x: 0,
+        y: 0,
+        width: width,
+        height: height,
+      } as PixelCrop)
+    }
+    if (onRevert) {
+      onRevert()
+    }
+  }, [onRevert])
+
   return (
     <div className="w-full">
       <div className="flex justify-center mb-4">
@@ -82,7 +108,13 @@ export default function ImageCrop({ imageSrc, onCropComplete }: ImageCropProps) 
         </ReactCrop>
       </div>
       {completedCrop && (
-        <div className="flex justify-center">
+        <div className="flex justify-center gap-2">
+          <button
+            onClick={handleRevert}
+            className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
+          >
+            Revert Crop
+          </button>
           <button
             onClick={getCroppedImg}
             disabled={isProcessing}

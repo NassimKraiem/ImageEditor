@@ -52,8 +52,7 @@ export default function ImageEditor() {
 
   const handleCropComplete = (croppedImageUrl: string) => {
     setEditedImage(croppedImageUrl)
-    setImage(croppedImageUrl)
-    
+
     const img = new Image()
     img.onload = () => {
       setOriginalImage(img)
@@ -232,6 +231,18 @@ export default function ImageEditor() {
                         <ImageCrop
                           imageSrc={editedImage}
                           onCropComplete={handleCropComplete}
+                          onRevert={() => {
+                            // Revert to original uncropped image
+                            if (image) {
+                              setEditedImage(image)
+                              const img = new Image()
+                              img.onload = () => {
+                                setOriginalImage(img)
+                                drawImageToCanvas(img)
+                              }
+                              img.src = image
+                            }
+                          }}
                         />
                       ) : (
                         <canvas
