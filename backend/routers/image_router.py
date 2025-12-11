@@ -309,11 +309,12 @@ async def adjust_image(
                     result = img_cv
 
         elif operation == "thresholding":
-            # Binary thresholding
-            _, result = cv2.threshold(img_cv, threshold, 255, cv2.THRESH_BINARY)
-            if len(result.shape) == 2:  # Convert grayscale back to RGB
-                result = cv2.cvtColor(result, cv2.COLOR_GRAY2RGB)
-                result = cv2.cvtColor(result, cv2.COLOR_GRAY2RGB)
+            # Binary thresholding - convert to grayscale first for proper results
+            gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY) \
+                   if len(img_cv.shape) == 3 else img_cv
+            _, result = cv2.threshold(gray, threshold, 255, cv2.THRESH_BINARY)
+            # Convert back to RGB for frontend compatibility
+            result = cv2.cvtColor(result, cv2.COLOR_GRAY2RGB)
 
         elif operation == "mean":
             # Mean/Average filter
