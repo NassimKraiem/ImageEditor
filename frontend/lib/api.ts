@@ -93,3 +93,30 @@ export async function applyFilters(
   return data.image
 }
 
+export async function applyAdjustments(
+  imageUrl: string,
+  operation: string,
+  threshold?: number,
+  kernelSize?: number,
+  sigma?: number
+): Promise<string> {
+  const formData = new FormData()
+  formData.append('image_url', imageUrl)
+  formData.append('operation', operation)
+  formData.append('threshold', threshold?.toString() || '128')
+  formData.append('kernel_size', kernelSize?.toString() || '3')
+  formData.append('sigma', sigma?.toString() || '1.0')
+
+  const response = await fetch(`${API_BASE_URL}/api/image/adjust`, {
+    method: 'POST',
+    body: formData,
+  })
+
+  if (!response.ok) {
+    throw new Error('Failed to apply adjustments')
+  }
+
+  const data = await response.json()
+  return data.image_url
+}
+

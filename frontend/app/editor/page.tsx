@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import ImageCrop from '@/components/ImageCrop'
 import ImageFilters from '@/components/ImageFilters'
 import ImageControls from '@/components/ImageControls'
+import ImageAdjust from '@/components/ImageAdjust'
 import { rotateImage, flipImage } from '@/lib/api'
 
 export default function ImageEditor() {
@@ -63,12 +64,33 @@ export default function ImageEditor() {
 
   const handleFilterApply = (filteredImageUrl: string) => {
     setEditedImage(filteredImageUrl)
-    
+
     const img = new Image()
     img.onload = () => {
       drawImageToCanvas(img)
     }
     img.src = filteredImageUrl
+  }
+
+  const handleAdjustApply = (adjustedImageUrl: string) => {
+    setEditedImage(adjustedImageUrl)
+
+    const img = new Image()
+    img.onload = () => {
+      drawImageToCanvas(img)
+    }
+    img.src = adjustedImageUrl
+  }
+
+  const handleAdjustUndo = (previousImageUrl: string) => {
+    setEditedImage(previousImageUrl)
+
+    const img = new Image()
+    img.onload = () => {
+      setOriginalImage(img)
+      drawImageToCanvas(img)
+    }
+    img.src = previousImageUrl
   }
 
   const handleRotate = async (degrees: number) => {
@@ -224,10 +246,9 @@ export default function ImageEditor() {
                       img.src = previousImageUrl
                     }}
                   />
-                ) : (
+                ) : activeTool === 'crop' && editedImage ? (
                   <>
                     <div className="flex justify-center items-center bg-gray-900 rounded-lg p-4 min-h-[500px] overflow-auto">
-                      {activeTool === 'crop' && editedImage ? (
                         <ImageCrop
                           imageSrc={editedImage}
                           onCropComplete={handleCropComplete}
@@ -244,22 +265,19 @@ export default function ImageEditor() {
                             }
                           }}
                         />
-                      ) : (
-                        <canvas
-                          ref={canvasRef}
-                          className="max-w-full h-auto rounded-lg shadow-2xl"
-                        />
-                      )}
                     </div>
                   </>
-                )}
-
-                {activeTool === 'adjust' && (
-                  <div className="mt-4 bg-gray-700 rounded-lg p-4">
-                    <p className="text-gray-300 text-center">
-                      Adjust tools coming soon...
-                    </p>
-                  </div>
+                ) : activeTool === 'adjust' && editedImage ? (
+                  <ImageAdjust
+                    imageSrc={editedImage}
+                    onAdjustApply={handleAdjustApply}
+                    onUndo={handleAdjustUndo}
+                  />
+                ) : (
+                  <canvas
+                    ref={canvasRef}
+                    className="max-w-full h-auto rounded-lg shadow-2xl"
+                  />
                 )}
               </div>
             </div>
