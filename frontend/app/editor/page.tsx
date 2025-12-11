@@ -7,11 +7,24 @@ import ImageControls from '@/components/ImageControls'
 import ImageAdjust from '@/components/ImageAdjust'
 import { rotateImage, flipImage } from '@/lib/api'
 
+interface ImageData {
+  id: string
+  name: string
+  originalUrl: string
+  editedUrl: string
+  originalImageElement: HTMLImageElement | null
+}
+
 export default function ImageEditor() {
-  const [image, setImage] = useState<string | null>(null)
-  const [editedImage, setEditedImage] = useState<string | null>(null)
-  const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null)
+  const [images, setImages] = useState<ImageData[]>([])
+  const [currentImageIndex, setCurrentImageIndex] = useState<number>(0)
   const [activeTool, setActiveTool] = useState<'crop' | 'filters' | 'adjust' | null>(null)
+
+  // Computed properties for current image
+  const currentImage = images[currentImageIndex]
+  const image = currentImage?.originalUrl || null
+  const editedImage = currentImage?.editedUrl || null
+  const originalImage = currentImage?.originalImageElement || null
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -21,13 +34,20 @@ export default function ImageEditor() {
       const reader = new FileReader()
       reader.onload = (e) => {
         const result = e.target?.result as string
-        setImage(result)
-        setEditedImage(result)
-        
+
+        const newImage: ImageData = {
+          id: Date.now().toString(),
+          name: file.name,
+          originalUrl: result,
+          editedUrl: result,
+          originalImageElement: null
+        }
+
         const img = new Image()
         img.onload = () => {
-          setOriginalImage(img)
-          drawImageToCanvas(img)
+          newImage.originalImageElement = img
+          setImages(prev => [...prev, newImage])
+          setCurrentImageIndex(images.length) // Switch to the new image
         }
         img.src = result
       }
@@ -51,59 +71,81 @@ export default function ImageEditor() {
     ctx.drawImage(img, 0, 0)
   }
 
-  const handleCropComplete = (croppedImageUrl: string) => {
-    setEditedImage(croppedImageUrl)
-
-    const img = new Image()
-    img.onload = () => {
-      setOriginalImage(img)
-      drawImageToCanvas(img)
+  // Update canvas when current image changes
+  useEffect(() => {
+    if (originalImage) {
+      drawImageToCanvas(originalImage)
     }
-    img.src = croppedImageUrl
+  }, [currentImageIndex, originalImage])
+
+  const handleCropComplete = (croppedImageUrl: string) => {
+    if (currentImage) {
+      const updatedImages = [...images]
+      updatedImages[currentImageIndex] = {
+        ...currentImage,
+        editedUrl: croppedImageUrl,
+        originalImageElement: null
+      }
+
+      const img = new Image()
+      img.onload = () => {
+        updatedImages[currentImageIndex].originalImageElement = img
+        setImages(updatedImages)
+      }
+      img.src = croppedImageUrl
+    }
   }
 
   const handleFilterApply = (filteredImageUrl: string) => {
-    setEditedImage(filteredImageUrl)
-
-    const img = new Image()
-    img.onload = () => {
-      drawImageToCanvas(img)
+    if (currentImage) {
+      const updatedImages = [...images]
+      updatedImages[currentImageIndex] = {
+        ...currentImage,
+        editedUrl: filteredImageUrl
+      }
+      setImages(updatedImages)
     }
-    img.src = filteredImageUrl
   }
 
   const handleAdjustApply = (adjustedImageUrl: string) => {
-    setEditedImage(adjustedImageUrl)
-
-    const img = new Image()
-    img.onload = () => {
-      drawImageToCanvas(img)
+    if (currentImage) {
+      const updatedImages = [...images]
+      updatedImages[currentImageIndex] = {
+        ...currentImage,
+        editedUrl: adjustedImageUrl
+      }
+      setImages(updatedImages)
     }
-    img.src = adjustedImageUrl
   }
 
   const handleAdjustUndo = (previousImageUrl: string) => {
-    setEditedImage(previousImageUrl)
-
-    const img = new Image()
-    img.onload = () => {
-      setOriginalImage(img)
-      drawImageToCanvas(img)
+    if (currentImage) {
+      const updatedImages = [...images]
+      updatedImages[currentImageIndex] = {
+        ...currentImage,
+        editedUrl: previousImageUrl
+      }
+      setImages(updatedImages)
     }
-    img.src = previousImageUrl
   }
 
   const handleRotate = async (degrees: number) => {
-    if (!editedImage) return
+    if (!currentImage) return
 
     try {
-      const rotatedImageUrl = await rotateImage(editedImage, degrees)
-      setEditedImage(rotatedImageUrl)
-      
+      const rotatedImageUrl = await rotateImage(currentImage.editedUrl, degrees)
+
+      const updatedImages = [...images]
+      updatedImages[currentImageIndex] = {
+        ...currentImage,
+        editedUrl: rotatedImageUrl,
+        originalImageElement: null
+      }
+
       const img = new Image()
       img.onload = () => {
-        setOriginalImage(img)
-        drawImageToCanvas(img)
+        updatedImages[currentImageIndex].originalImageElement = img
+        setImages(updatedImages)
       }
       img.src = rotatedImageUrl
     } catch (error) {
@@ -113,16 +155,22 @@ export default function ImageEditor() {
   }
 
   const handleFlip = async (direction: 'horizontal' | 'vertical') => {
-    if (!editedImage) return
+    if (!currentImage) return
 
     try {
-      const flippedImageUrl = await flipImage(editedImage, direction)
-      setEditedImage(flippedImageUrl)
-      
+      const flippedImageUrl = await flipImage(currentImage.editedUrl, direction)
+
+      const updatedImages = [...images]
+      updatedImages[currentImageIndex] = {
+        ...currentImage,
+        editedUrl: flippedImageUrl,
+        originalImageElement: null
+      }
+
       const img = new Image()
       img.onload = () => {
-        setOriginalImage(img)
-        drawImageToCanvas(img)
+        updatedImages[currentImageIndex].originalImageElement = img
+        setImages(updatedImages)
       }
       img.src = flippedImageUrl
     } catch (error) {
@@ -132,24 +180,30 @@ export default function ImageEditor() {
   }
 
   const handleDownload = () => {
-    if (!editedImage) return
+    if (!currentImage) return
 
     const link = document.createElement('a')
-    link.download = 'edited-image.png'
-    link.href = editedImage
+    link.download = `edited-${currentImage.name}`
+    link.href = currentImage.editedUrl
     link.click()
   }
 
   const handleReset = () => {
-    if (!image) return
-    
+    if (!currentImage) return
+
+    const updatedImages = [...images]
+    updatedImages[currentImageIndex] = {
+      ...currentImage,
+      editedUrl: currentImage.originalUrl,
+      originalImageElement: null
+    }
+
     const img = new Image()
     img.onload = () => {
-      setOriginalImage(img)
-      drawImageToCanvas(img)
-      setEditedImage(image)
+      updatedImages[currentImageIndex].originalImageElement = img
+      setImages(updatedImages)
     }
-    img.src = image
+    img.src = currentImage.originalUrl
   }
 
   return (
@@ -159,16 +213,18 @@ export default function ImageEditor() {
           Image Editor
         </h1>
 
+        {/* Hidden file input - always available */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileUpload}
+          className="hidden"
+        />
+
         {!image ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh]">
             <div className="bg-gray-800 rounded-lg p-12 border-2 border-dashed border-gray-600 hover:border-blue-500 transition-colors">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
               <button
                 onClick={() => fileInputRef.current?.click()}
                 className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors text-lg"
@@ -182,6 +238,46 @@ export default function ImageEditor() {
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Image Tabs */}
+            {images.length > 0 && (
+              <div className="lg:col-span-4 mb-4">
+                <div className="flex flex-wrap gap-2 bg-gray-800 rounded-lg p-4">
+                  {images.map((img, index) => (
+                    <button
+                      key={img.id}
+                      onClick={() => setCurrentImageIndex(index)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        index === currentImageIndex
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      }`}
+                    >
+                      {img.name}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          const newImages = images.filter((_, i) => i !== index)
+                          setImages(newImages)
+                          if (currentImageIndex >= newImages.length) {
+                            setCurrentImageIndex(Math.max(0, newImages.length - 1))
+                          }
+                        }}
+                        className="ml-2 text-red-400 hover:text-red-300"
+                      >
+                        ×
+                      </button>
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+                  >
+                    + Add Image
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Sidebar Controls */}
             <div className="lg:col-span-1 space-y-4">
               <div className="bg-gray-800 rounded-lg p-4">
@@ -230,56 +326,77 @@ export default function ImageEditor() {
 
             {/* Main Editor Area */}
             <div className="lg:col-span-3">
-              <div className="bg-gray-800 rounded-lg p-6">
-                {activeTool === 'filters' && editedImage ? (
-                  <ImageFilters
-                    imageSrc={editedImage}
-                    onFilterApply={handleFilterApply}
-                    onUndo={(previousImageUrl) => {
-                      // Undo the last applied filter by going back to the previous image
-                      setEditedImage(previousImageUrl)
-                      const img = new Image()
-                      img.onload = () => {
-                        setOriginalImage(img)
-                        drawImageToCanvas(img)
-                      }
-                      img.src = previousImageUrl
-                    }}
-                  />
-                ) : activeTool === 'crop' && editedImage ? (
-                  <>
-                    <div className="flex justify-center items-center bg-gray-900 rounded-lg p-4 min-h-[500px] overflow-auto">
-                        <ImageCrop
-                          imageSrc={editedImage}
-                          onCropComplete={handleCropComplete}
-                          onRevert={() => {
-                            // Revert to original uncropped image
-                            if (image) {
-                              setEditedImage(image)
-                              const img = new Image()
-                              img.onload = () => {
-                                setOriginalImage(img)
-                                drawImageToCanvas(img)
+              {images.length === 0 ? (
+                <div className="flex justify-center items-center bg-gray-900 rounded-lg p-4 min-h-[500px]">
+                  <div className="text-center">
+                    <p className="text-gray-400 text-lg mb-4">No images loaded</p>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+                    >
+                      Upload Your First Image
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-gray-800 rounded-lg p-6">
+                  {activeTool === 'filters' && editedImage ? (
+                    <ImageFilters
+                      imageSrc={editedImage}
+                      onFilterApply={handleFilterApply}
+                      onUndo={(previousImageUrl) => {
+                        // Undo the last applied filter by going back to the previous image
+                        if (currentImage) {
+                          const updatedImages = [...images]
+                          updatedImages[currentImageIndex] = {
+                            ...currentImage,
+                            editedUrl: previousImageUrl
+                          }
+                          setImages(updatedImages)
+                        }
+                      }}
+                    />
+                  ) : activeTool === 'crop' && editedImage ? (
+                    <>
+                      <div className="flex justify-center items-center bg-gray-900 rounded-lg p-4 min-h-[500px] overflow-auto">
+                          <ImageCrop
+                            imageSrc={editedImage}
+                            onCropComplete={handleCropComplete}
+                            onRevert={() => {
+                              // Revert to original uncropped image
+                              if (currentImage) {
+                                const updatedImages = [...images]
+                                updatedImages[currentImageIndex] = {
+                                  ...currentImage,
+                                  editedUrl: currentImage.originalUrl,
+                                  originalImageElement: null
+                                }
+
+                                const img = new Image()
+                                img.onload = () => {
+                                  updatedImages[currentImageIndex].originalImageElement = img
+                                  setImages(updatedImages)
+                                }
+                                img.src = currentImage.originalUrl
                               }
-                              img.src = image
-                            }
-                          }}
-                        />
-                    </div>
-                  </>
-                ) : activeTool === 'adjust' && editedImage ? (
-                  <ImageAdjust
-                    imageSrc={editedImage}
-                    onAdjustApply={handleAdjustApply}
-                    onUndo={handleAdjustUndo}
-                  />
-                ) : (
-                  <canvas
-                    ref={canvasRef}
-                    className="max-w-full h-auto rounded-lg shadow-2xl"
-                  />
-                )}
-              </div>
+                            }}
+                          />
+                      </div>
+                    </>
+                  ) : activeTool === 'adjust' && editedImage ? (
+                    <ImageAdjust
+                      imageSrc={editedImage}
+                      onAdjustApply={handleAdjustApply}
+                      onUndo={handleAdjustUndo}
+                    />
+                  ) : (
+                    <canvas
+                      ref={canvasRef}
+                      className="max-w-full h-auto rounded-lg shadow-2xl"
+                    />
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
