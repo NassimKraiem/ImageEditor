@@ -317,7 +317,9 @@ export default function ImageEditor() {
     updatedImages[currentImageIndex] = {
       ...currentImage,
       editedUrl: currentImage.originalUrl,
-      originalImageElement: null
+      originalImageElement: null,
+      history: [], // Clear edit history
+      historyIndex: -1 // Reset to latest state
     }
 
     const img = new Image()
