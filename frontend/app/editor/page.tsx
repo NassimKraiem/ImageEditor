@@ -472,13 +472,14 @@ export default function ImageEditor() {
                     <button
                       key={img.id}
                       onClick={() => setCurrentImageIndex(index)}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors max-w-48 flex ${
                         index === currentImageIndex
                           ? 'bg-blue-600 text-white'
                           : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                       }`}
+                      title={img.name} // Show full name on hover
                     >
-                      {img.name}
+                      <span className="truncate block max-w-full">{img.name}</span>
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
