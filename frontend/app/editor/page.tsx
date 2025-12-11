@@ -13,6 +13,8 @@ interface ImageData {
   originalUrl: string
   editedUrl: string
   originalImageElement: HTMLImageElement | null
+  history: string[] // Array of previous edited URLs for undo
+  historyIndex: number // Current position in history (-1 means at latest)
 }
 
 export default function ImageEditor() {
@@ -42,13 +44,15 @@ export default function ImageEditor() {
     reader.onload = (e) => {
       const result = e.target?.result as string
 
-      const newImage: ImageData = {
-        id: Date.now().toString(),
-        name: file.name,
-        originalUrl: result,
-        editedUrl: result,
-        originalImageElement: null
-      }
+        const newImage: ImageData = {
+          id: Date.now().toString(),
+          name: file.name,
+          originalUrl: result,
+          editedUrl: result,
+          originalImageElement: null,
+          history: [],
+          historyIndex: -1
+        }
 
       const img = new Image()
       img.onload = () => {
@@ -125,10 +129,20 @@ export default function ImageEditor() {
   const handleCropComplete = (croppedImageUrl: string) => {
     if (currentImage) {
       const updatedImages = [...images]
+      // Add current state to history before applying new edit
+      const newHistory = [...currentImage.history]
+      if (currentImage.historyIndex >= 0) {
+        // If we're in middle of history, truncate future states
+        newHistory.splice(currentImage.historyIndex + 1)
+      }
+      newHistory.push(currentImage.editedUrl)
+
       updatedImages[currentImageIndex] = {
         ...currentImage,
         editedUrl: croppedImageUrl,
-        originalImageElement: null
+        originalImageElement: null,
+        history: newHistory,
+        historyIndex: -1 // At latest state
       }
 
       const img = new Image()
@@ -143,9 +157,19 @@ export default function ImageEditor() {
   const handleFilterApply = (filteredImageUrl: string) => {
     if (currentImage) {
       const updatedImages = [...images]
+      // Add current state to history before applying new edit
+      const newHistory = [...currentImage.history]
+      if (currentImage.historyIndex >= 0) {
+        // If we're in middle of history, truncate future states
+        newHistory.splice(currentImage.historyIndex + 1)
+      }
+      newHistory.push(currentImage.editedUrl)
+
       updatedImages[currentImageIndex] = {
         ...currentImage,
-        editedUrl: filteredImageUrl
+        editedUrl: filteredImageUrl,
+        history: newHistory,
+        historyIndex: -1 // At latest state
       }
       setImages(updatedImages)
     }
@@ -154,24 +178,78 @@ export default function ImageEditor() {
   const handleAdjustApply = (adjustedImageUrl: string) => {
     if (currentImage) {
       const updatedImages = [...images]
+      // Add current state to history before applying new edit
+      const newHistory = [...currentImage.history]
+      if (currentImage.historyIndex >= 0) {
+        // If we're in middle of history, truncate future states
+        newHistory.splice(currentImage.historyIndex + 1)
+      }
+      newHistory.push(currentImage.editedUrl)
+
       updatedImages[currentImageIndex] = {
         ...currentImage,
-        editedUrl: adjustedImageUrl
+        editedUrl: adjustedImageUrl,
+        history: newHistory,
+        historyIndex: -1 // At latest state
       }
       setImages(updatedImages)
     }
   }
 
-  const handleAdjustUndo = (previousImageUrl: string) => {
-    if (currentImage) {
+  // Centralized undo/redo functions for all tools
+  const handleUndo = () => {
+    if (currentImage && currentImage.history.length > 0) {
       const updatedImages = [...images]
+      let newHistoryIndex: number
+
+      if (currentImage.historyIndex === -1) {
+        // At latest state, undo to last history item
+        newHistoryIndex = currentImage.history.length - 1
+      } else if (currentImage.historyIndex > 0) {
+        // In middle of history, go back one more
+        newHistoryIndex = currentImage.historyIndex - 1
+      } else {
+        // Already at beginning, can't undo further
+        return
+      }
+
       updatedImages[currentImageIndex] = {
         ...currentImage,
-        editedUrl: previousImageUrl
+        editedUrl: currentImage.history[newHistoryIndex],
+        historyIndex: newHistoryIndex
       }
       setImages(updatedImages)
     }
   }
+
+  const handleRedo = () => {
+    if (currentImage && currentImage.historyIndex >= 0) {
+      const updatedImages = [...images]
+      let newHistoryIndex: number
+      let newEditedUrl: string
+
+      if (currentImage.historyIndex < currentImage.history.length - 1) {
+        // Can redo to next history item
+        newHistoryIndex = currentImage.historyIndex + 1
+        newEditedUrl = currentImage.history[newHistoryIndex]
+      } else {
+        // At end of history, redo to latest state (which is stored after history array)
+        newHistoryIndex = -1
+        newEditedUrl = currentImage.editedUrl
+      }
+
+      updatedImages[currentImageIndex] = {
+        ...currentImage,
+        editedUrl: newEditedUrl,
+        historyIndex: newHistoryIndex
+      }
+      setImages(updatedImages)
+    }
+  }
+
+  // Check if undo/redo are available
+  const canUndo = currentImage && (currentImage.history.length > 0 || currentImage.historyIndex >= 0)
+  const canRedo = currentImage && currentImage.historyIndex >= 0 && currentImage.historyIndex < currentImage.history.length - 1
 
   const handleRotate = async (degrees: number) => {
     if (!currentImage) return
@@ -469,6 +547,10 @@ export default function ImageEditor() {
                 onFlip={handleFlip}
                 onReset={handleReset}
                 onDownload={handleDownload}
+                onUndo={handleUndo}
+                onRedo={handleRedo}
+                canUndo={canUndo}
+                canRedo={canRedo}
               />
             </div>
 
@@ -492,17 +574,6 @@ export default function ImageEditor() {
                     <ImageFilters
                       imageSrc={editedImage}
                       onFilterApply={handleFilterApply}
-                      onUndo={(previousImageUrl) => {
-                        // Undo the last applied filter by going back to the previous image
-                        if (currentImage) {
-                          const updatedImages = [...images]
-                          updatedImages[currentImageIndex] = {
-                            ...currentImage,
-                            editedUrl: previousImageUrl
-                          }
-                          setImages(updatedImages)
-                        }
-                      }}
                     />
                   ) : activeTool === 'crop' && editedImage ? (
                     <>
@@ -535,7 +606,6 @@ export default function ImageEditor() {
                     <ImageAdjust
                       imageSrc={editedImage}
                       onAdjustApply={handleAdjustApply}
-                      onUndo={handleAdjustUndo}
                     />
                   ) : (
                     <canvas

@@ -5,6 +5,10 @@ interface ImageControlsProps {
   onFlip: (direction: 'horizontal' | 'vertical') => void
   onReset: () => void
   onDownload: () => void
+  onUndo?: () => void
+  onRedo?: () => void
+  canUndo?: boolean
+  canRedo?: boolean
 }
 
 export default function ImageControls({
@@ -12,6 +16,10 @@ export default function ImageControls({
   onFlip,
   onReset,
   onDownload,
+  onUndo,
+  onRedo,
+  canUndo = false,
+  canRedo = false,
 }: ImageControlsProps) {
   return (
     <div className="bg-gray-800 rounded-lg p-4 space-y-4">
@@ -57,6 +65,28 @@ export default function ImageControls({
       </div>
 
       <div className="pt-4 border-t border-gray-700 space-y-2">
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={onUndo}
+            disabled={!canUndo}
+            className="py-2 px-3 bg-gray-600 text-gray-300 rounded-lg hover:bg-gray-500 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+            </svg>
+            Undo
+          </button>
+          <button
+            onClick={onRedo}
+            disabled={!canRedo}
+            className="py-2 px-3 bg-gray-600 text-gray-300 rounded-lg hover:bg-gray-500 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10H11a8 8 0 00-8 8v2m18-10l-6-6m6 6l-6 6" />
+            </svg>
+            Redo
+          </button>
+        </div>
         <button
           onClick={onReset}
           className="w-full py-2 px-4 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"

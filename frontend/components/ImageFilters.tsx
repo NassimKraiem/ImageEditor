@@ -25,7 +25,6 @@ export default function ImageFilters({ imageSrc, onFilterApply, onUndo }: ImageF
   const [saturation, setSaturation] = useState(100)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [pendingOperationsCount, setPendingOperationsCount] = useState(0)
-  const [appliedImagesHistory, setAppliedImagesHistory] = useState<string[]>([])
   const wsRef = useRef<ImageProcessorWebSocket | null>(null)
   const updateTimerRef = useRef<NodeJS.Timeout | null>(null)
   const originalImageRef = useRef<string>(imageSrc)
@@ -33,6 +32,11 @@ export default function ImageFilters({ imageSrc, onFilterApply, onUndo }: ImageF
 
   // Derive isProcessing from pendingOperationsCount for concurrency safety
   const isProcessing = pendingOperationsCount > 0
+
+  // Clear preview when image changes
+  useEffect(() => {
+    setPreviewImage(null)
+  }, [imageSrc])
 
   // Helper functions for managing pending operations (concurrency-safe)
   const startOperation = useCallback(() => {
@@ -122,8 +126,6 @@ export default function ImageFilters({ imageSrc, onFilterApply, onUndo }: ImageF
 
   const handleApply = () => {
     if (previewImage) {
-      // Add current image to history before applying new one
-      setAppliedImagesHistory(prev => [...prev, imageSrc])
       onFilterApply(previewImage)
       // Reset filters to default after applying
       setBrightness(100)
@@ -133,20 +135,6 @@ export default function ImageFilters({ imageSrc, onFilterApply, onUndo }: ImageF
     }
   }
 
-  const handleUndo = () => {
-    if (appliedImagesHistory.length > 0) {
-      // Get the last applied image from history
-      const lastAppliedImage = appliedImagesHistory[appliedImagesHistory.length - 1]
-
-      // Remove it from history
-      setAppliedImagesHistory(prev => prev.slice(0, -1))
-
-      // Call the undo callback with the previous image
-      if (onUndo) {
-        onUndo(lastAppliedImage)
-      }
-    }
-  }
 
   return (
     <div className="space-y-4">
@@ -221,20 +209,13 @@ export default function ImageFilters({ imageSrc, onFilterApply, onUndo }: ImageF
           </div>
         </div>
 
-        <div className="flex gap-2">
-          <button
-            onClick={handleUndo}
-            disabled={appliedImagesHistory.length === 0}
-            className="flex-1 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-lg transition-colors"
-          >
-            Undo
-          </button>
+        <div className="flex justify-center">
           <button
             onClick={handleApply}
             disabled={!previewImage || isProcessing}
-            className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+            className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-2 px-6 rounded-lg transition-colors"
           >
-            Apply
+            Apply Filter
           </button>
         </div>
       </div>

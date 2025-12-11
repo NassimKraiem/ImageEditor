@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { applyAdjustments } from '@/lib/api'
 import SplitView from './SplitView'
 
@@ -16,8 +16,12 @@ export default function ImageAdjust({ imageSrc, onAdjustApply, onUndo }: ImageAd
   const [kernelSize, setKernelSize] = useState(3)
   const [sigma, setSigma] = useState(1.0)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [appliedAdjustmentsHistory, setAppliedAdjustmentsHistory] = useState<string[]>([])
   const [previewImage, setPreviewImage] = useState<string | null>(null)
+
+  // Clear preview when image changes
+  useEffect(() => {
+    setPreviewImage(null)
+  }, [imageSrc])
 
   const operations = [
     { value: 'equalization', label: 'Histogram Equalization' },
@@ -56,9 +60,6 @@ export default function ImageAdjust({ imageSrc, onAdjustApply, onUndo }: ImageAd
     setIsProcessing(true)
 
     try {
-      // Add current image to history before applying new adjustment
-      setAppliedAdjustmentsHistory(prev => [...prev, imageSrc])
-
       const adjustedImageUrl = previewImage || await applyAdjustments(
         imageSrc,
         selectedOperation,
@@ -73,19 +74,6 @@ export default function ImageAdjust({ imageSrc, onAdjustApply, onUndo }: ImageAd
       alert('Failed to apply adjustment. Please try again.')
     } finally {
       setIsProcessing(false)
-    }
-  }
-
-  const handleUndo = () => {
-    if (appliedAdjustmentsHistory.length > 0 && onUndo) {
-      // Get the last applied image from history
-      const lastAppliedImage = appliedAdjustmentsHistory[appliedAdjustmentsHistory.length - 1]
-
-      // Remove it from history
-      setAppliedAdjustmentsHistory(prev => prev.slice(0, -1))
-
-      // Call the undo callback with the previous image
-      onUndo(lastAppliedImage)
     }
   }
 
@@ -182,23 +170,16 @@ export default function ImageAdjust({ imageSrc, onAdjustApply, onUndo }: ImageAd
 
         <div className="flex gap-2 mt-6">
           <button
-            onClick={handleUndo}
-            disabled={appliedAdjustmentsHistory.length === 0}
-            className="bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-lg transition-colors"
-          >
-            Undo
-          </button>
-          <button
             onClick={handlePreview}
             disabled={isProcessing}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+            className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-lg transition-colors"
           >
             {isProcessing ? 'Processing...' : 'Preview'}
           </button>
           <button
             onClick={handleApply}
             disabled={isProcessing}
-            className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+            className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-lg transition-colors"
           >
             Apply Adjustment
           </button>
