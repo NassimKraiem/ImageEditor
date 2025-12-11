@@ -137,9 +137,9 @@ export default function ImageFilters({ imageSrc, onFilterApply, onUndo }: ImageF
 
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Split View */}
-      <div className="bg-gray-800 rounded-lg p-4">
+      <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700 shadow-xl">
         <SplitView
           originalImage={imageSrc}
           modifiedImage={previewImage}
@@ -148,74 +148,106 @@ export default function ImageFilters({ imageSrc, onFilterApply, onUndo }: ImageF
       </div>
 
       {/* Filter Controls */}
-      <div className="bg-gray-700 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-white mb-4">Filters</h3>
-
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          {filters.map((filter) => (
-            <button
-              key={filter.value}
-              onClick={() => setSelectedFilter(filter.value)}
-              className={`py-2 px-3 rounded-lg text-sm transition-colors ${
-                selectedFilter === filter.value
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-              }`}
-            >
-              {filter.name}
-            </button>
-          ))}
+      <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700 shadow-xl">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-bold text-white">Visual Filters</h3>
         </div>
 
-        <div className="space-y-4 mb-4">
-          <div>
-            <label className="block text-gray-300 text-sm mb-2">
-              Brightness: {brightness}%
-            </label>
-            <input
-              type="range"
-              min="0"
-              max="200"
-              value={brightness}
-              onChange={(e) => setBrightness(Number(e.target.value))}
-              className="w-full"
-            />
-          </div>
-          <div>
-            <label className="block text-gray-300 text-sm mb-2">
-              Contrast: {contrast}%
-            </label>
-            <input
-              type="range"
-              min="0"
-              max="200"
-              value={contrast}
-              onChange={(e) => setContrast(Number(e.target.value))}
-              className="w-full"
-            />
-          </div>
-          <div>
-            <label className="block text-gray-300 text-sm mb-2">
-              Saturation: {saturation}%
-            </label>
-            <input
-              type="range"
-              min="0"
-              max="200"
-              value={saturation}
-              onChange={(e) => setSaturation(Number(e.target.value))}
-              className="w-full"
-            />
+        {/* Preset Filters */}
+        <div className="mb-6">
+          <h4 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-3">Preset Filters</h4>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {filters.map((filter) => (
+              <button
+                key={filter.value}
+                onClick={() => setSelectedFilter(filter.value)}
+                className={`group p-3 rounded-xl transition-all duration-200 transform hover:scale-105 ${
+                  selectedFilter === filter.value
+                    ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/25'
+                    : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 hover:text-white border border-gray-600/50 hover:border-gray-500/50'
+                }`}
+              >
+                <div className="text-center">
+                  <div className="font-medium text-sm">{filter.name}</div>
+                </div>
+              </button>
+            ))}
           </div>
         </div>
 
-        <div className="flex justify-center">
+        {/* Manual Adjustments */}
+        <div className="space-y-5">
+          <h4 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-3">Manual Adjustments</h4>
+
+          <div className="grid grid-cols-1 gap-4">
+            <div className="bg-gray-800/50 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-gray-300 text-sm font-medium">Brightness</label>
+                <span className="text-blue-400 text-sm font-mono">{brightness}%</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="200"
+                value={brightness}
+                onChange={(e) => setBrightness(Number(e.target.value))}
+                className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+              />
+            </div>
+
+            <div className="bg-gray-800/50 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-gray-300 text-sm font-medium">Contrast</label>
+                <span className="text-green-400 text-sm font-mono">{contrast}%</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="200"
+                value={contrast}
+                onChange={(e) => setContrast(Number(e.target.value))}
+                className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+              />
+            </div>
+
+            <div className="bg-gray-800/50 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-gray-300 text-sm font-medium">Saturation</label>
+                <span className="text-purple-400 text-sm font-mono">{saturation}%</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="200"
+                value={saturation}
+                onChange={(e) => setSaturation(Number(e.target.value))}
+                className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Apply Button */}
+        <div className="mt-6 pt-6 border-t border-gray-700">
           <button
             onClick={handleApply}
             disabled={!previewImage || isProcessing}
-            className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-2 px-6 rounded-lg transition-colors"
+            className="group relative w-full p-4 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-green-500/25"
           >
-            Apply Filter
+            <div className="flex items-center justify-center gap-3">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="font-semibold">
+                {isProcessing ? 'Applying...' : 'Apply Filter'}
+              </span>
+            </div>
+            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-green-600 to-green-700 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
           </button>
         </div>
       </div>

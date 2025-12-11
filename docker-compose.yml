@@ -9,6 +9,7 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
+      - WATCHPACK_POLLING=true
     depends_on:
       - backend
     networks:
@@ -28,4 +29,7 @@ services:
 networks:
   app-network:
     driver: bridge
+
+volumes:
+  frontend-node_modules:
 
